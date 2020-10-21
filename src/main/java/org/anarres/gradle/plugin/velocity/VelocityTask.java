@@ -16,8 +16,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.log.SystemLogChute;
@@ -37,6 +39,7 @@ import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceTask;
 import org.gradle.api.tasks.TaskAction;
 
+
 /**
  * A bare velocity task.
  *
@@ -46,161 +49,190 @@ import org.gradle.api.tasks.TaskAction;
  * @author shevek
  */
 public class VelocityTask extends SourceTask {
+   private static interface Collector {
+      public void accept(@Nonnull File dir);
+   }
 
-    private static interface Collector {
+   private static class IncludePathCollector implements Collector {
+      private final StringBuilder out = new StringBuilder();
 
-        public void accept(@Nonnull File dir);
-    }
 
-    private static class IncludePathCollector implements Collector {
+      @Override
+      public void accept(final File dir) {
+         if (out.length() > 0) {
+            out.append(", ");
+         }
+         out.append(dir.getAbsolutePath());
+      }
+   }
 
-        private final StringBuilder out = new StringBuilder();
+   private class IncludeFileCollector implements Collector {
+      private FileCollection out = getProject().files();
 
-        @Override
-        public void accept(File dir) {
-            if (out.length() > 0)
-                out.append(", ");
-            out.append(dir.getAbsolutePath());
-        }
-    }
 
-    private class IncludeFileCollector implements Collector {
+      @Override
+      public void accept(final File dir) {
+         out = out.plus(getProject().fileTree(dir));
+      }
+   }
 
-        private FileCollection out = getProject().files();
 
-        @Override
-        public void accept(File dir) {
-            out = out.plus(getProject().fileTree(dir));
-        }
-    }
+   private File outputDir;
 
-    private File outputDir;
+   private List<File> includeDirs = new ArrayList<>();
 
-    private List<File> includeDirs = new ArrayList<>();
-    private Map<String, Object> contextValues = new HashMap<>();
+   private Map<String, Object> contextValues = new HashMap<>();
 
-    @OutputDirectory
-    @Nonnull    // Not @Optional
-    public File getOutputDir() {
-        return outputDir;
-    }
 
-    public void setOutputDir(@Nonnull File outputDir) {
-        this.outputDir = outputDir;
-    }
+   @OutputDirectory
+   @Nonnull // Not @Optional
+   public File getOutputDir() {
+      return outputDir;
+   }
 
-    @Input
-    @Optional
-    @CheckForNull
-    public List<File> getIncludeDirs() {
-        return includeDirs;
-    }
 
-    public void setIncludeDirs(@Nonnull List<? extends File> includeDirs) {
-        this.includeDirs = new ArrayList<File>(includeDirs);
-    }
+   public void setOutputDir(@Nonnull final File outputDir) {
+      this.outputDir = outputDir;
+   }
 
-    @Input
-    @Optional
-    @CheckForNull
-    public Map<String, Object> getContextValues() {
-        return contextValues;
-    }
 
-    public void setContextValues(@Nonnull Map<? extends String, ? extends Object> contextValues) {
-        this.contextValues = new HashMap<String, Object>(contextValues);
-    }
+   @Input
+   @Optional
+   @CheckForNull
+   public List<File> getIncludeDirs() {
+      return includeDirs;
+   }
 
-    public void contextValue(@Nonnull String key, @CheckForNull Object value) {
-        if (value == null)
-            contextValues.remove(key);
-        else
-            contextValues.put(key, value);
-    }
 
-    private void setProperty(VelocityEngine engine, String name, Object value) {
-        getLogger().info("VelocityEngine property: " + name + " = " + value);
-        engine.setProperty(name, value);
-    }
+   public void setIncludeDirs(@Nonnull final List<? extends File> includeDirs) {
+      this.includeDirs = new ArrayList<>(includeDirs);
+   }
 
-    private void collectDir(@Nonnull Collector collector, @Nonnull File dir) {
-        getLogger().info("Collecting dir " + dir);
-        collector.accept(dir);
-    }
 
-    private void collectDirs(@Nonnull Collector collector, @CheckForNull Iterable<File> dirs) {
-        if (dirs != null)
-            for (File dir : dirs)
-                collectDir(collector, dir);
-    }
+   @Input
+   @Optional
+   @CheckForNull
+   public Map<String, Object> getContextValues() {
+      return contextValues;
+   }
 
-    private void collectUnknown(@Nonnull final Collector collector, @Nonnull FileTree source) {
-        getLogger().info("Attempting to collect " + source.getClass() + ":" + source);
-        for (FileSystemLocation location : source.getElements().getOrElse(Collections.<FileSystemLocation>emptySet())) {
-            getLogger().info("Attempting to add " + location.getClass() + ":" + location);
-            collector.accept(location.getAsFile());
-        }
-    }
 
-    @InputFiles
-    @PathSensitive(PathSensitivity.RELATIVE)
-    @Nonnull    // Not @Optional
-    /* pp */ FileCollection getIncludeFiles() {
-        getSource();
-        IncludeFileCollector collector = new IncludeFileCollector();
-        collectUnknown(collector, getSource());
-        collectDirs(collector, getIncludeDirs());
-        for (File file : collector.out)
-            getLogger().info("Including " + file);
-        return collector.out;
-    }
+   public void setContextValues(@Nonnull final Map<? extends String, ? extends Object> contextValues) {
+      this.contextValues = new HashMap<>(contextValues);
+   }
 
-    @TaskAction
-    public void runVelocity() throws Exception {
-        final FileTree inputFiles = getSource();
-        final File outputDir = getOutputDir();
 
-        DefaultGroovyMethods.deleteDir(outputDir);
-        outputDir.mkdirs();
+   public void contextValue(@Nonnull final String key, @CheckForNull final Object value) {
+      if (value == null) {
+         contextValues.remove(key);
+      }
+      else {
+         contextValues.put(key, value);
+      }
+   }
 
-        final VelocityEngine engine = new VelocityEngine();
-        setProperty(engine, VelocityEngine.RUNTIME_LOG_LOGSYSTEM_CLASS, SystemLogChute.class.getName());
-        setProperty(engine, VelocityEngine.RESOURCE_LOADER, "file");
-        setProperty(engine, VelocityEngine.FILE_RESOURCE_LOADER_CACHE, "true");
-        // FILE_RESOURCE_LOADER_PATH actually takes a comma separated list. 
-        IncludePathCollector collector = new IncludePathCollector();
-        collectUnknown(collector, getSource());
-        collectDirs(collector, getIncludeDirs());
-        setProperty(engine, VelocityEngine.FILE_RESOURCE_LOADER_PATH, collector.out.toString());
 
-        inputFiles.visit(new EmptyFileVisitor() {
-            @Override
-            public void visitFile(FileVisitDetails fvd) {
-                try {
-                    File outputFile = fvd.getRelativePath().getFile(outputDir);
-                    if (getLogger().isDebugEnabled())
-                        getLogger().debug("Preprocessing " + fvd.getFile() + " -> " + outputFile);
-                    VelocityContext context = new VelocityContext();
-                    Map<String, Object> contextValues = getContextValues();
-                    if (contextValues != null)
-                        for (Map.Entry<String, Object> e : contextValues.entrySet())
-                            context.put(e.getKey(), e.getValue());
-                    context.put("project", getProject());
-                    context.put("package", DefaultGroovyMethods.join(fvd.getRelativePath().getParent().getSegments(), "."));
-                    context.put("class", fvd.getRelativePath().getLastName().replaceFirst("\\.java$", ""));
-                    outputFile.getParentFile().mkdirs();
+   private void setProperty(final VelocityEngine engine, final String name, final Object value) {
+      getLogger().info("VelocityEngine property: " + name + " = " + value);
+      engine.setProperty(name, value);
+   }
 
-                    try (
-                            InputStream in = new FileInputStream(fvd.getFile());
-                            Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
-                            OutputStream out = new FileOutputStream(outputFile);
-                            Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
-                        engine.evaluate(context, writer, fvd.getRelativePath().toString(), reader);
-                    }
-                } catch (IOException e) {
-                    throw new GradleException("Failed to process " + fvd, e);
-                }
+
+   private void collectDir(@Nonnull final Collector collector, @Nonnull final File dir) {
+      getLogger().info("Collecting dir " + dir);
+      collector.accept(dir);
+   }
+
+
+   private void collectDirs(@Nonnull final Collector collector, @CheckForNull final Iterable<File> dirs) {
+      if (dirs != null) {
+         for (File dir : dirs) {
+            collectDir(collector, dir);
+         }
+      }
+   }
+
+
+   private void collectUnknown(@Nonnull final Collector collector, @Nonnull final FileTree source) {
+      getLogger().info("Attempting to collect " + source.getClass() + ":" + source);
+      for (FileSystemLocation location : source.getElements().getOrElse(Collections.<FileSystemLocation> emptySet())) {
+         getLogger().info("Attempting to add " + location.getClass() + ":" + location);
+         collector.accept(location.getAsFile());
+      }
+   }
+
+
+   @InputFiles
+   @PathSensitive(PathSensitivity.RELATIVE)
+   @Nonnull
+   // Not @Optional
+   /* pp */ FileCollection getIncludeFiles() {
+      getSource();
+      IncludeFileCollector collector = new IncludeFileCollector();
+      collectUnknown(collector, getSource());
+      collectDirs(collector, getIncludeDirs());
+      for (File file : collector.out) {
+         getLogger().info("Including " + file);
+      }
+      return collector.out;
+   }
+
+
+   @TaskAction
+   public void runVelocity() throws Exception {
+      final FileTree inputFiles = getSource();
+      final File outputDir = getOutputDir();
+
+      DefaultGroovyMethods.deleteDir(outputDir);
+      outputDir.mkdirs();
+
+
+      inputFiles.visit(new EmptyFileVisitor() {
+         @Override
+         public void visitFile(final FileVisitDetails fvd) {
+            try {
+               File outputFile = fvd.getRelativePath().getFile(outputDir);
+               if (getLogger().isDebugEnabled()) {
+                  getLogger().debug("Preprocessing " + fvd.getFile() + " -> " + outputFile);
+               }
+               VelocityContext context = new VelocityContext();
+               Map<String, Object> contextValues = getContextValues();
+               if (contextValues != null) {
+                  for (Map.Entry<String, Object> e : contextValues.entrySet()) {
+                     context.put(e.getKey(), e.getValue());
+                  }
+               }
+               context.put("project", getProject());
+               context.put("package", DefaultGroovyMethods.join(fvd.getRelativePath().getParent().getSegments(), "."));
+               context.put("class", fvd.getRelativePath().getLastName().replaceFirst("\\.java$", ""));
+               outputFile.getParentFile().mkdirs();
+
+               try (InputStream in = new FileInputStream(fvd.getFile());
+                        Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
+                        OutputStream out = new FileOutputStream(outputFile);
+                        Writer writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+                  final VelocityEngine engine = createEngine();
+                  engine.evaluate(context, writer, fvd.getRelativePath().toString(), reader);
+               }
             }
-        });
-    }
+            catch (NullPointerException | IOException e) {
+               throw new GradleException("Failed to process " + fvd, e);
+            }
+         }
+      });
+   }
+
+
+   private VelocityEngine createEngine() {
+      final VelocityEngine engine = new VelocityEngine();
+      setProperty(engine, VelocityEngine.RUNTIME_LOG_LOGSYSTEM_CLASS, SystemLogChute.class.getName());
+      setProperty(engine, VelocityEngine.RESOURCE_LOADER, "file");
+      setProperty(engine, VelocityEngine.FILE_RESOURCE_LOADER_CACHE, "true");
+      // FILE_RESOURCE_LOADER_PATH actually takes a comma separated list.
+      IncludePathCollector collector = new IncludePathCollector();
+      collectUnknown(collector, getSource());
+      collectDirs(collector, getIncludeDirs());
+      setProperty(engine, VelocityEngine.FILE_RESOURCE_LOADER_PATH, collector.out.toString());
+      return engine;
+   }
 }

@@ -1,27 +1,27 @@
 buildscript {
-	repositories {
-		mavenLocal()
-		mavenCentral()
-		jcenter()
-		gradlePluginPortal()
-		// maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-	}
+   repositories {
+      mavenLocal()
+      mavenCentral()
+      jcenter()
+      gradlePluginPortal()
+      // maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+   }
 
-	dependencies {
-		classpath 'org.anarres.gradle:gradle-stdproject-plugin:1.0.10'
-	}
+   dependencies {
+      classpath 'org.anarres.gradle:gradle-stdproject-plugin:1.0.10'
+   }
 }
 
 apply plugin: 'org.anarres.stdplugin'
 
 stdmodule {
-	description "A Gradle plugin for the Velocity pre-processor."
-	author id: 'shevek', name: 'Shevek', email: 'github@anarres.org'
-	license 'Apache-2.0'
+   description "A Gradle plugin for the Velocity pre-processor."
+   author id: 'shevek', name: 'Shevek', email: 'github@anarres.org'
+   license 'Apache-2.0'
 }
 
 stdplugin {
-	implementation "org.anarres.velocity", "org.anarres.gradle.plugin.velocity.VelocityPlugin"
+   implementation "org.anarres.velocity", "org.anarres.gradle.plugin.velocity.VelocityPlugin"
 }
 
 group = "org.anarres.gradle"
@@ -29,18 +29,18 @@ sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
 dependencies {
-	implementation gradleApi()
-	implementation localGroovy()
+   implementation gradleApi()
+   implementation localGroovy()
 
-	implementation 'com.google.code.findbugs:annotations:3.0.1'
+   implementation 'com.google.code.findbugs:annotations:3.0.1'
 
-	compile 'org.apache.velocity:velocity:1.7'
-	compile ("org.apache.velocity:velocity-tools:2.0") {
-		exclude group: 'log4j', module: 'log4j'
-		exclude group: 'logkit', module: 'logkit'
-		exclude group: 'avalon-framework', module: 'avalon-framework'
-		exclude group: 'javax.servlet', module: 'servlet-api'
-	}
+   compile 'org.apache.velocity:velocity:1.7'
+   compile ("org.apache.velocity:velocity-tools:2.0") {
+      exclude group: 'log4j', module: 'log4j'
+      exclude group: 'logkit', module: 'logkit'
+      exclude group: 'avalon-framework', module: 'avalon-framework'
+      exclude group: 'javax.servlet', module: 'servlet-api'
+   }
 
-	testCompile 'com.google.guava:guava:27.1-jre'
+   testCompile 'com.google.guava:guava:27.1-jre'
 }
