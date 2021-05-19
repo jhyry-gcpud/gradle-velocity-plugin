@@ -1,1 +1,12 @@
+pluginManagement{
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        gradlePluginPortal()
+    }
+}
+
+includeBuild('../gradle-stdproject-plugin')
+
 rootProject.name='gradle-velocity-plugin'

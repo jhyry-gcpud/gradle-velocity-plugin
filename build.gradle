@@ -1,46 +1,80 @@
 buildscript {
-   repositories {
-      mavenLocal()
-      mavenCentral()
-      jcenter()
-      gradlePluginPortal()
-      // maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
-   }
+    dependencies {
+        classpath 'org.anarres.gradle:gradle-stdproject-plugin:1.0.11-SNAPSHOT'
+        classpath 'org.ajoberstar:gradle-git-publish:2.1.1'
+        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
+        classpath 'com.netflix.nebula:gradle-contacts-plugin:latest.release'
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.22.0'
+        classpath 'gradle.plugin.com.github.spotbugs:spotbugs-gradle-plugin:2.0.0'
+        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+        classpath group: 'com.google.guava', name: 'guava', version: '27.1-jre'
+        classpath('com.netflix.nebula:gradle-info-plugin:5.0.3') {
+            exclude group: 'com.perforce'
+        }
+    }
+}
 
-   dependencies {
-      classpath 'org.anarres.gradle:gradle-stdproject-plugin:1.0.10'
-   }
+plugins {
+    id 'eclipse'
 }
 
 apply plugin: 'org.anarres.stdplugin'
 
 stdmodule {
-   description "A Gradle plugin for the Velocity pre-processor."
-   author id: 'shevek', name: 'Shevek', email: 'github@anarres.org'
-   license 'Apache-2.0'
+    description "A Gradle plugin for the Velocity pre-processor."
+    author id: 'shevek', name: 'Shevek', email: 'github@anarres.org'
+    license 'Apache-2.0'
 }
 
 stdplugin {
-   implementation "org.anarres.velocity", "org.anarres.gradle.plugin.velocity.VelocityPlugin"
+    implementation "org.anarres.velocity", "org.anarres.gradle.plugin.velocity.VelocityPlugin"
 }
 
 group = "org.anarres.gradle"
 sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
+targetCompatibility = '1.8'
 
 dependencies {
-   implementation gradleApi()
-   implementation localGroovy()
+    implementation gradleApi()
+    implementation localGroovy()
 
-   implementation 'com.google.code.findbugs:annotations:3.0.1'
+    implementation 'com.google.code.findbugs:annotations:3.0.1'
 
-   compile 'org.apache.velocity:velocity:1.7'
-   compile ("org.apache.velocity:velocity-tools:2.0") {
-      exclude group: 'log4j', module: 'log4j'
-      exclude group: 'logkit', module: 'logkit'
-      exclude group: 'avalon-framework', module: 'avalon-framework'
-      exclude group: 'javax.servlet', module: 'servlet-api'
-   }
+    compile 'org.apache.velocity:velocity:1.7'
+    compile ("org.apache.velocity:velocity-tools:2.0") {
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'logkit', module: 'logkit'
+        exclude group: 'avalon-framework', module: 'avalon-framework'
+        exclude group: 'javax.servlet', module: 'servlet-api'
+    }
 
-   testCompile 'com.google.guava:guava:27.1-jre'
+    testCompile 'com.google.guava:guava:27.1-jre'
+}
+
+eclipse {
+    project {
+        natures 'edu.umd.cs.findbugs.plugin.eclipse.findbugsNature'
+        buildCommand 'edu.umd.cs.findbugs.plugin.eclipse.findbugsBuilder'
+    }
+
+    classpath.downloadJavadoc = true
+    classpath.downloadSources = true
+}
+
+compileJava.sourceCompatibility = '1.7'
+compileJava.targetCompatibility = '1.8'
+
+task sourcesJarGvp(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJarGvp(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJarGvp
+    archives javadocJarGvp
 }

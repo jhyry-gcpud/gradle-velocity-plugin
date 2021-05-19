@@ -198,9 +198,13 @@ public class VelocityTask extends SourceTask {
                VelocityContext context = new VelocityContext();
                Map<String, Object> contextValues = getContextValues();
                if (contextValues != null) {
+                  getLogger().info("Applying context to VelocityContext for evaluation: " + contextValues);
                   for (Map.Entry<String, Object> e : contextValues.entrySet()) {
                      context.put(e.getKey(), e.getValue());
                   }
+               }
+               else {
+                  getLogger().warn("Velocity cannot be populated with null context!");
                }
                context.put("project", getProject());
                context.put("package", DefaultGroovyMethods.join(fvd.getRelativePath().getParent().getSegments(), "."));
