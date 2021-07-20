@@ -7,6 +7,4 @@ pluginManagement{
     }
 }
 
-includeBuild('../gradle-stdproject-plugin')
-
 rootProject.name='gradle-velocity-plugin'

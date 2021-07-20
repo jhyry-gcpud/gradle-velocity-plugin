@@ -11,6 +11,11 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.FileVisitResult;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -183,7 +188,19 @@ public class VelocityTask extends SourceTask {
       final FileTree inputFiles = getSource();
       final File outputDir = getOutputDir();
 
-      DefaultGroovyMethods.deleteDir(outputDir);
+      Files.walkFileTree(outputDir.toPath(), new SimpleFileVisitor<Path>() {
+         @Override
+         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+             Files.delete(file);
+             return FileVisitResult.CONTINUE;
+         }
+         @Override
+         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+             Files.delete(dir);
+             return FileVisitResult.CONTINUE;
+         }
+      });
+
       outputDir.mkdirs();
 
 

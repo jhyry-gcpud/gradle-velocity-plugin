@@ -1,33 +1,24 @@
 buildscript {
     dependencies {
-        classpath 'org.anarres.gradle:gradle-stdproject-plugin:1.0.11-SNAPSHOT'
-        classpath 'org.ajoberstar:gradle-git-publish:2.1.1'
-        classpath 'nl.javadude.gradle.plugins:license-gradle-plugin:0.11.0'
-        classpath 'com.netflix.nebula:gradle-contacts-plugin:latest.release'
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.22.0'
         classpath 'gradle.plugin.com.github.spotbugs:spotbugs-gradle-plugin:2.0.0'
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
         classpath group: 'com.google.guava', name: 'guava', version: '27.1-jre'
-        classpath('com.netflix.nebula:gradle-info-plugin:5.0.3') {
-            exclude group: 'com.perforce'
-        }
     }
 }
 
 plugins {
     id 'eclipse'
+    id 'java'
+    id 'java-gradle-plugin'
+    id 'java-library'
 }
 
-apply plugin: 'org.anarres.stdplugin'
-
-stdmodule {
-    description "A Gradle plugin for the Velocity pre-processor."
-    author id: 'shevek', name: 'Shevek', email: 'github@anarres.org'
-    license 'Apache-2.0'
-}
-
-stdplugin {
-    implementation "org.anarres.velocity", "org.anarres.gradle.plugin.velocity.VelocityPlugin"
+gradlePlugin {
+    plugins {
+        simplePlugin {
+            id = 'org.anarres.velocity'
+            implementationClass = 'org.anarres.gradle.plugin.velocity.VelocityPlugin'
+        }
+    }
 }
 
 group = "org.anarres.gradle"
@@ -40,15 +31,15 @@ dependencies {
 
     implementation 'com.google.code.findbugs:annotations:3.0.1'
 
-    compile 'org.apache.velocity:velocity:1.7'
-    compile ("org.apache.velocity:velocity-tools:2.0") {
+    compileOnly 'org.apache.velocity:velocity:1.7'
+    compileOnly ("org.apache.velocity:velocity-tools:2.0") {
         exclude group: 'log4j', module: 'log4j'
         exclude group: 'logkit', module: 'logkit'
         exclude group: 'avalon-framework', module: 'avalon-framework'
         exclude group: 'javax.servlet', module: 'servlet-api'
     }
 
-    testCompile 'com.google.guava:guava:27.1-jre'
+    testCompileOnly 'com.google.guava:guava:27.1-jre'
 }
 
 eclipse {
