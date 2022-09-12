@@ -12,6 +12,10 @@ plugins {
     id 'java-library'
 }
 
+repositories {
+    mavenCentral()
+}
+
 gradlePlugin {
     plugins {
         simplePlugin {
